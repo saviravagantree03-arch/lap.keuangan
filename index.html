@@ -1545,8 +1545,8 @@ function showToast(msg, type='success') {
   const c = document.getElementById('toastContainer');
   const icons = {success:'✅',error:'❌',warning:'⚠️'};
   const t = document.createElement('div');
-  t.className = `toast `;
-  t.innerHTML = `<span></span> `;
+  t.className = 'toast ' + type;
+  t.innerHTML = '<span>' + (icons[type]||'✅') + '</span> ' + msg;
   c.appendChild(t);
   setTimeout(()=>t.style.opacity='0', 2800);
   setTimeout(()=>t.remove(), 3200);
@@ -1665,10 +1665,29 @@ function renderUserSwitchModal() {
     div.className='user-item';
     div.style.cursor='pointer';
     div.style.border = u.id===activeUser ? '2px solid var(--pink)' : '1px solid var(--gray-200)';
-    div.innerHTML=`<div class="user-avatar" style="background:var(--pink-pale)"></div><div style="flex:1"><div style="font-size:14px;font-weight:800"></div><div style="font-size:11px;color:var(--text-muted)">''</div></div>')">Hapus</button>`:''}`;
-    div.onclick=()=>{ if(div.onclick&&div.querySelector('.btn-danger')) return; switchUser(u.id); };
-    div.querySelector('.user-avatar').onclick=()=>switchUser(u.id);
-    div.querySelector('div').onclick=()=>switchUser(u.id);
+    div.style.padding='10px 12px';
+    div.style.borderRadius='12px';
+    div.style.marginBottom='8px';
+    div.style.display='flex';
+    div.style.alignItems='center';
+    div.style.gap='10px';
+    const avatarEl = document.createElement('div');
+    avatarEl.className='user-avatar';
+    avatarEl.style.background='var(--pink-pale)';
+    avatarEl.textContent=u.icon;
+    const infoEl = document.createElement('div');
+    infoEl.style.flex='1';
+    infoEl.innerHTML=`<div style="font-size:14px;font-weight:800">${u.name}</div><div style="font-size:11px;color:var(--text-muted)">${u.id===activeUser?'✅ Aktif':'Klik untuk pilih'}</div>`;
+    div.appendChild(avatarEl);
+    div.appendChild(infoEl);
+    if(u.id!=='u3') {
+      const delBtn=document.createElement('button');
+      delBtn.className='btn btn-danger btn-xs';
+      delBtn.textContent='Hapus';
+      delBtn.onclick=(e)=>{e.stopPropagation();removeUser(u.id);};
+      div.appendChild(delBtn);
+    }
+    div.onclick=()=>switchUser(u.id);
     container.appendChild(div);
   });
 }
@@ -2731,14 +2750,8 @@ function exportCSV() {
 }
 
 // ============================================================
-// AFTER LOAD SETUP
+// AFTER LOAD SETUP - handled by async DOMContentLoaded above
 // ============================================================
-// Set today on debt form
-document.addEventListener('DOMContentLoaded',()=>{
-  const dEl=document.getElementById('debt-date'); if(dEl) dEl.value=today();
-  populateAllDropdowns();
-  renderSidebar();
-});
 </script>
 </body>
 </html>
