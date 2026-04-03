@@ -794,13 +794,30 @@ hr.pink { border:none; border-top:2px dashed var(--pink-light); margin:20px 0; }
         <div class="card">
           <div class="card-header"><div class="card-title" style="color:var(--sky)">💙 Transfer Antar Akun</div></div>
           <div class="card-body">
+            <div class="form-group">
+              <label class="form-label">Jenis Transfer</label>
+              <select class="form-control" id="tr-transfer-type" onchange="toggleTransferType()">
+                <option value="debit-debit">🔄 Debit → Debit (transfer biasa)</option>
+                <option value="debit-credit">💳 Debit → Kredit (bayar hutang kartu kredit)</option>
+              </select>
+            </div>
             <div class="form-row">
               <div class="form-group"><label class="form-label">Tanggal</label><input type="date" class="form-control" id="tr-date"></div>
               <div class="form-group"><label class="form-label">Nominal (Rp)</label><input type="number" class="form-control" id="tr-amount" placeholder="0"></div>
             </div>
             <div class="form-row">
-              <div class="form-group"><label class="form-label">Dari Akun</label><select class="form-control" id="tr-from"></select></div>
-              <div class="form-group"><label class="form-label">Ke Akun</label><select class="form-control" id="tr-to"></select></div>
+              <div class="form-group"><label class="form-label">Dari Akun (Debit)</label><select class="form-control" id="tr-from"></select></div>
+              <div class="form-group">
+                <label class="form-label" id="tr-to-label">Ke Akun</label>
+                <select class="form-control" id="tr-to"></select>
+              </div>
+            </div>
+            <div class="form-group" id="tr-debt-link-row" style="display:none;">
+              <label class="form-label" style="color:var(--sky)">🔗 Kurangi Hutang Terkait <span style="font-weight:500;color:var(--text-muted)">(opsional)</span></label>
+              <select class="form-control" id="tr-debt-link" style="border-color:var(--sky)">
+                <option value="">— Tidak terkait hutang —</option>
+              </select>
+              <small style="font-size:11px;color:var(--text-muted);font-weight:600;">Jika dipilih, hutang akan otomatis dikurangi sebesar nominal transfer ini</small>
             </div>
             <div class="form-group"><label class="form-label">User</label><select class="form-control" id="tr-user"></select></div>
             <div class="form-group"><label class="form-label">Catatan</label><textarea class="form-control" id="tr-note" rows="2" placeholder="Catatan transfer..."></textarea></div>
@@ -978,7 +995,7 @@ hr.pink { border:none; border-top:2px dashed var(--pink-light); margin:20px 0; }
           <div class="tab active" onclick="setHutangTab(this,'hutang')">💸 Hutang Saya</div>
           <div class="tab" onclick="setHutangTab(this,'piutang')">💰 Piutang Saya</div>
         </div>
-        <button class="btn btn-primary" onclick="openModal('addDebtModal')">＋ Tambah</button>
+        <button class="btn btn-primary" onclick="openAddDebtModal()">＋ Tambah</button>
       </div>
 
       <div class="card">
@@ -1082,19 +1099,24 @@ hr.pink { border:none; border-top:2px dashed var(--pink-light); margin:20px 0; }
       <button class="btn btn-ghost btn-icon" onclick="closeModal('addAccountModal')">✕</button>
     </div>
     <div class="modal-body">
-      <div class="form-group"><label class="form-label">Nama Akun</label><input type="text" class="form-control" id="ac-name" placeholder="Mis: BCA, Dana..."></div>
+      <div class="form-group"><label class="form-label">Nama Akun</label><input type="text" class="form-control" id="ac-name" placeholder="Mis: BCA, Dana, Mandiri CC..."></div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Saldo Awal (Rp)</label><input type="number" class="form-control" id="ac-balance" placeholder="0"></div>
         <div class="form-group"><label class="form-label">Jenis Akun</label>
-          <select class="form-control" id="ac-type">
+          <select class="form-control" id="ac-type" onchange="toggleCreditLimitAdd()">
             <option value="debit">Bank (Debit)</option>
-            <option value="credit">Kartu Kredit</option>
+            <option value="credit">Kartu Kredit 🔴</option>
             <option value="ewallet">Dompet Digital</option>
             <option value="cash">Tunai</option>
             <option value="investment">Investasi</option>
             <option value="savings">Tabungan</option>
           </select>
         </div>
+        <div class="form-group"><label class="form-label" id="ac-balance-label">Saldo Awal (Rp)</label><input type="number" class="form-control" id="ac-balance" placeholder="0"></div>
+      </div>
+      <div class="form-group" id="ac-credit-limit-row" style="display:none;">
+        <label class="form-label" style="color:var(--red)">💳 Limit Kartu Kredit (Rp)</label>
+        <input type="number" class="form-control" id="ac-credit-limit" placeholder="0" style="border-color:var(--red)">
+        <small style="color:var(--text-muted);font-size:11px;font-weight:600;">⚠️ Akun kredit akan mengurangi kekayaan bersih sebesar tagihannya</small>
       </div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">User Pemilik</label><select class="form-control" id="ac-user"></select></div>
@@ -1127,14 +1149,18 @@ hr.pink { border:none; border-top:2px dashed var(--pink-light); margin:20px 0; }
       <input type="hidden" id="edit-ac-id">
       <div class="form-group"><label class="form-label">Nama Akun</label><input type="text" class="form-control" id="edit-ac-name"></div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Saldo Awal (Rp)</label><input type="number" class="form-control" id="edit-ac-balance"></div>
         <div class="form-group"><label class="form-label">Jenis Akun</label>
-          <select class="form-control" id="edit-ac-type">
-            <option value="debit">Bank (Debit)</option><option value="credit">Kartu Kredit</option>
+          <select class="form-control" id="edit-ac-type" onchange="toggleCreditLimitEdit()">
+            <option value="debit">Bank (Debit)</option><option value="credit">Kartu Kredit 🔴</option>
             <option value="ewallet">Dompet Digital</option><option value="cash">Tunai</option>
             <option value="investment">Investasi</option><option value="savings">Tabungan</option>
           </select>
         </div>
+        <div class="form-group"><label class="form-label">Saldo / Tagihan (Rp)</label><input type="number" class="form-control" id="edit-ac-balance"></div>
+      </div>
+      <div class="form-group" id="edit-ac-credit-limit-row" style="display:none;">
+        <label class="form-label" style="color:var(--red)">💳 Limit Kartu Kredit (Rp)</label>
+        <input type="number" class="form-control" id="edit-ac-credit-limit" placeholder="0" style="border-color:var(--red)">
       </div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">User Pemilik</label><select class="form-control" id="edit-ac-user"></select></div>
@@ -1166,7 +1192,7 @@ hr.pink { border:none; border-top:2px dashed var(--pink-light); margin:20px 0; }
     <div class="modal-body">
       <input type="hidden" id="debt-edit-id">
       <div class="form-group"><label class="form-label">Jenis</label>
-        <select class="form-control" id="debt-type">
+        <select class="form-control" id="debt-type" onchange="toggleDebtCreditAccount()">
           <option value="hutang">💸 Hutang (saya berhutang)</option>
           <option value="piutang">💰 Piutang (saya dipinjam)</option>
         </select>
@@ -1175,6 +1201,13 @@ hr.pink { border:none; border-top:2px dashed var(--pink-light); margin:20px 0; }
       <div class="form-row">
         <div class="form-group"><label class="form-label">Nominal (Rp)</label><input type="number" class="form-control" id="debt-amount" placeholder="0"></div>
         <div class="form-group"><label class="form-label">Tanggal</label><input type="date" class="form-control" id="debt-date"></div>
+      </div>
+      <div class="form-group" id="debt-credit-account-row">
+        <label class="form-label" style="color:var(--red)">💳 Akun Kredit Terkait <span style="font-weight:500;color:var(--text-muted)">(opsional — jika hutang dari kartu kredit)</span></label>
+        <select class="form-control" id="debt-credit-account" style="border-color:var(--red)">
+          <option value="">— Tidak terkait akun kredit —</option>
+        </select>
+        <small style="font-size:11px;color:var(--text-muted);font-weight:600;">Jika dipilih, tagihan akun kredit ini akan dihitung otomatis ke liabilitas kekayaan bersih</small>
       </div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Jatuh Tempo</label><input type="date" class="form-control" id="debt-due"></div>
@@ -1383,7 +1416,7 @@ function saveDB() {
   localStorage.setItem('saviraDB', JSON.stringify(DB));
   // Kalau Supabase sudah dikonfigurasi, simpan juga ke cloud
   if (SUPABASE_URL && SUPABASE_KEY) {
-    fetch(`${SUPABASE_URL}/rest/v1/savira_finance`, {
+    fetch(`/rest/v1/savira_finance`, {
       method: 'POST',
       headers: {
         'apikey': SUPABASE_KEY,
@@ -1400,7 +1433,7 @@ async function loadDB() {
   // Coba ambil dari Supabase dulu (data paling baru)
   if (SUPABASE_URL && SUPABASE_KEY) {
     try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/savira_finance?id=eq.main&select=data`, {
+      const res = await fetch(`/rest/v1/savira_finance?id=eq.main&select=data`, {
         headers: {
           'apikey': SUPABASE_KEY,
           'Authorization': 'Bearer ' + SUPABASE_KEY
@@ -1512,8 +1545,8 @@ function showToast(msg, type='success') {
   const c = document.getElementById('toastContainer');
   const icons = {success:'✅',error:'❌',warning:'⚠️'};
   const t = document.createElement('div');
-  t.className = `toast ${type}`;
-  t.innerHTML = `<span>${icons[type]||'ℹ️'}</span> ${msg}`;
+  t.className = `toast `;
+  t.innerHTML = `<span></span> `;
   c.appendChild(t);
   setTimeout(()=>t.style.opacity='0', 2800);
   setTimeout(()=>t.remove(), 3200);
@@ -1551,7 +1584,7 @@ function getMonthRange(offset=0) {
 }
 function getYearRange() {
   const y=new Date().getFullYear();
-  return {start:`${y}-01-01`, end:`${y}-12-31`};
+  return {start:`-01-01`, end:`-12-31`};
 }
 
 function filterTxByPeriod(period) {
@@ -1601,7 +1634,7 @@ function populateAccountDropdowns() {
     const el=document.getElementById(id); if(!el)return;
     const cur=el.value;
     el.innerHTML='';
-    DB.accounts.forEach(a=>{ const o=document.createElement('option'); o.value=a.id; o.textContent=a.icon+' '+a.name; el.appendChild(o); });
+    DB.accounts.forEach(a=>{ const o=document.createElement('option'); o.value=a.id; o.textContent=a.icon+' '+a.name+(a.type==='credit'?' 🔴':''); el.appendChild(o); });
     el.value=cur;
   });
   ['filterAkun'].forEach(id=>{
@@ -1609,6 +1642,9 @@ function populateAccountDropdowns() {
     el.innerHTML='<option value="">Semua Akun</option>';
     DB.accounts.forEach(a=>{ const o=document.createElement('option'); o.value=a.id; o.textContent=a.icon+' '+a.name; el.appendChild(o); });
   });
+  // Also refresh credit-account dropdowns
+  populateDebtCreditAccountDropdown();
+  populateDebtLinkDropdown();
 }
 
 // ============================================================
@@ -1629,7 +1665,7 @@ function renderUserSwitchModal() {
     div.className='user-item';
     div.style.cursor='pointer';
     div.style.border = u.id===activeUser ? '2px solid var(--pink)' : '1px solid var(--gray-200)';
-    div.innerHTML=`<div class="user-avatar" style="background:var(--pink-pale)">${u.icon}</div><div style="flex:1"><div style="font-size:14px;font-weight:800">${u.name}</div><div style="font-size:11px;color:var(--text-muted)">${u.id===activeUser?'✅ Aktif':''}</div></div>${u.id!=='u3'?`<button class="btn btn-danger btn-xs" onclick="removeUser('${u.id}')">Hapus</button>`:''}`;
+    div.innerHTML=`<div class="user-avatar" style="background:var(--pink-pale)"></div><div style="flex:1"><div style="font-size:14px;font-weight:800"></div><div style="font-size:11px;color:var(--text-muted)">''</div></div>')">Hapus</button>`:''}`;
     div.onclick=()=>{ if(div.onclick&&div.querySelector('.btn-danger')) return; switchUser(u.id); };
     div.querySelector('.user-avatar').onclick=()=>switchUser(u.id);
     div.querySelector('div').onclick=()=>switchUser(u.id);
@@ -1693,11 +1729,36 @@ function saveTransaction(type) {
     tx.accountTo=document.getElementById('tr-to').value;
     tx.user=document.getElementById('tr-user').value;
     tx.note=document.getElementById('tr-note').value;
-    tx.name='Transfer';
+    tx.transferType=document.getElementById('tr-transfer-type').value;
+    tx.debtLink=document.getElementById('tr-debt-link').value||'';
+    if(tx.transferType==='debit-credit') {
+      tx.name='Bayar Kredit';
+    } else {
+      tx.name='Transfer';
+    }
     if(!tx.amount||!tx.date){showToast('Tanggal & nominal wajib diisi!','error');return;}
     if(tx.account===tx.accountTo){showToast('Akun asal & tujuan tidak boleh sama!','error');return;}
+    // Debit account: always subtract
     const from=DB.accounts.find(a=>a.id===tx.account); if(from) from.balance-=tx.amount;
-    const to=DB.accounts.find(a=>a.id===tx.accountTo); if(to) to.balance+=tx.amount;
+    // Credit account: reduce balance (tagihan berkurang)
+    const to=DB.accounts.find(a=>a.id===tx.accountTo);
+    if(to) {
+      if(to.type==='credit') {
+        to.balance-=tx.amount; // tagihan kredit berkurang
+        if(to.balance<0) to.balance=0;
+      } else {
+        to.balance+=tx.amount;
+      }
+    }
+    // If linked to a debt, reduce debt amount
+    if(tx.debtLink) {
+      const debt=DB.debts.find(d=>d.id===tx.debtLink);
+      if(debt&&debt.status==='aktif') {
+        debt.amount-=tx.amount;
+        if(debt.amount<=0) { debt.amount=0; debt.status='lunas'; showToast('Hutang lunas otomatis! 🎉','success'); }
+        else { showToast(`Hutang berkurang ${fmt(tx.amount)} → sisa ${fmt(debt.amount)} 💳`); }
+      }
+    }
   }
   DB.transactions.unshift(tx);
   saveDB(); populateAccountDropdowns();
@@ -1710,7 +1771,17 @@ function resetForm(type) {
   const today = new Date().toISOString().split('T')[0];
   if(type==='income') { document.getElementById('in-amount').value=''; document.getElementById('in-name').value=''; document.getElementById('in-note').value=''; document.getElementById('in-date').value=today; }
   if(type==='expense') { document.getElementById('out-amount').value=''; document.getElementById('out-name').value=''; document.getElementById('out-note').value=''; document.getElementById('out-date').value=today; }
-  if(type==='transfer') { document.getElementById('tr-amount').value=''; document.getElementById('tr-note').value=''; document.getElementById('tr-date').value=today; }
+  if(type==='transfer') { 
+    document.getElementById('tr-amount').value=''; 
+    document.getElementById('tr-note').value=''; 
+    document.getElementById('tr-date').value=today;
+    document.getElementById('tr-transfer-type').value='debit-debit';
+    const debtRow=document.getElementById('tr-debt-link-row');
+    if(debtRow) debtRow.style.display='none';
+    const toLabelEl=document.getElementById('tr-to-label');
+    if(toLabelEl) toLabelEl.textContent='Ke Akun';
+    populateAccountDropdowns();
+  }
 }
 
 function editTransaction(id) {
@@ -1769,7 +1840,19 @@ function deleteTransaction(id) {
     if(ac){
       if(tx.type==='income') ac.balance-=tx.amount;
       else if(tx.type==='expense') ac.balance+=tx.amount;
-      else if(tx.type==='transfer'){ ac.balance+=tx.amount; const to=DB.accounts.find(a=>a.id===tx.accountTo); if(to) to.balance-=tx.amount; }
+      else if(tx.type==='transfer'){ 
+        ac.balance+=tx.amount; 
+        const toAc=DB.accounts.find(a=>a.id===tx.accountTo); 
+        if(toAc) {
+          if(toAc.type==='credit') toAc.balance+=tx.amount; // restore tagihan
+          else toAc.balance-=tx.amount;
+        }
+        // Restore debt if linked
+        if(tx.debtLink) {
+          const debt=DB.debts.find(d=>d.id===tx.debtLink);
+          if(debt) { debt.amount+=tx.amount; debt.status='aktif'; }
+        }
+      }
     }
     DB.transactions=DB.transactions.filter(t=>t.id!==id);
     saveDB(); renderHistori(); renderDashboard(); renderAkun();
@@ -1897,6 +1980,12 @@ function setCatatTab(btn, tab) {
   document.getElementById('form-pemasukan').style.display=tab==='pemasukan'?'block':'none';
   document.getElementById('form-pengeluaran').style.display=tab==='pengeluaran'?'block':'none';
   document.getElementById('form-transfer').style.display=tab==='transfer'?'block':'none';
+  if(tab==='transfer') {
+    // Initialize transfer type UI
+    const ttype=document.getElementById('tr-transfer-type');
+    if(ttype) ttype.value='debit-debit';
+    toggleTransferType();
+  }
 }
 
 // ============================================================
@@ -2073,6 +2162,77 @@ function renderGrafik() {
 }
 
 // ============================================================
+// CREDIT LIMIT TOGGLE HELPERS
+// ============================================================
+function toggleCreditLimitAdd() {
+  const type=document.getElementById('ac-type').value;
+  const row=document.getElementById('ac-credit-limit-row');
+  if(row) row.style.display=type==='credit'?'block':'none';
+}
+function toggleCreditLimitEdit() {
+  const type=document.getElementById('edit-ac-type').value;
+  const row=document.getElementById('edit-ac-credit-limit-row');
+  if(row) row.style.display=type==='credit'?'block':'none';
+}
+
+function toggleDebtCreditAccount() {
+  const type=document.getElementById('debt-type').value;
+  const row=document.getElementById('debt-credit-account-row');
+  if(row) row.style.display=type==='hutang'?'block':'none';
+}
+
+function toggleTransferType() {
+  const ttype=document.getElementById('tr-transfer-type').value;
+  const debtRow=document.getElementById('tr-debt-link-row');
+  const toLabelEl=document.getElementById('tr-to-label');
+  const toEl=document.getElementById('tr-to');
+  const fromEl=document.getElementById('tr-from');
+  
+  // Rebuild from dropdown (debit only)
+  const curFrom=fromEl.value, curTo=toEl.value;
+  fromEl.innerHTML='';
+  DB.accounts.filter(a=>a.type!=='credit').forEach(a=>{ const o=document.createElement('option'); o.value=a.id; o.textContent=a.icon+' '+a.name; fromEl.appendChild(o); });
+  fromEl.value=curFrom;
+
+  if(ttype==='debit-credit') {
+    if(toLabelEl) toLabelEl.textContent='Ke Akun Kredit (Bayar Hutang)';
+    toEl.innerHTML='';
+    DB.accounts.filter(a=>a.type==='credit').forEach(a=>{ const o=document.createElement('option'); o.value=a.id; o.textContent=a.icon+' '+a.name+' (Kredit)'; toEl.appendChild(o); });
+    if(debtRow) debtRow.style.display='block';
+    // Populate linked debts
+    populateDebtLinkDropdown();
+  } else {
+    if(toLabelEl) toLabelEl.textContent='Ke Akun';
+    toEl.innerHTML='';
+    DB.accounts.forEach(a=>{ const o=document.createElement('option'); o.value=a.id; o.textContent=a.icon+' '+a.name; toEl.appendChild(o); });
+    toEl.value=curTo;
+    if(debtRow) debtRow.style.display='none';
+  }
+}
+
+function populateDebtLinkDropdown() {
+  const el=document.getElementById('tr-debt-link'); if(!el) return;
+  el.innerHTML='<option value="">— Tidak terkait hutang —</option>';
+  DB.debts.filter(d=>d.type==='hutang'&&d.status==='aktif').forEach(d=>{
+    const o=document.createElement('option');
+    o.value=d.id;
+    o.textContent=`${d.name} — ${fmt(d.amount)}`;
+    el.appendChild(o);
+  });
+}
+
+function populateDebtCreditAccountDropdown() {
+  const el=document.getElementById('debt-credit-account'); if(!el) return;
+  el.innerHTML='<option value="">— Tidak terkait akun kredit —</option>';
+  DB.accounts.filter(a=>a.type==='credit').forEach(a=>{
+    const o=document.createElement('option');
+    o.value=a.id;
+    o.textContent=a.icon+' '+a.name;
+    el.appendChild(o);
+  });
+}
+
+// ============================================================
 // AKUN
 // ============================================================
 const acColors = {
@@ -2087,34 +2247,81 @@ const acColors = {
 function renderAkun() {
   const grid=document.getElementById('accountGrid');
   if(!DB.accounts.length){grid.innerHTML='<div class="empty-state"><div class="icon">💳</div><p>Belum ada akun. Tambahkan akun dulu!</p></div>';return;}
-  grid.innerHTML=DB.accounts.map(a=>{
-    const u=getUser(a.user);
-    return `<div class="account-card" style="background:${acColors[a.type]||acColors.debit}">
-      <div class="ac-actions">
-        <button class="ac-btn" onclick="editAccount('${a.id}')">✏️</button>
-        <button class="ac-btn" onclick="deleteAccount('${a.id}')">🗑️</button>
-      </div>
-      <div class="ac-icon">${a.icon}</div>
-      <div class="ac-name">${a.name}</div>
-      <div class="ac-balance">${fmt(a.balance)}</div>
-      <div class="ac-type">${a.type==='debit'?'Bank Debit':a.type==='credit'?'Kartu Kredit':a.type==='ewallet'?'E-Wallet':a.type==='cash'?'Tunai':a.type==='investment'?'Investasi':'Tabungan'} • ${u.icon} ${u.name}</div>
-    </div>`;
-  }).join('');
+  
+  // Separate debit & credit accounts
+  const debitAccs = DB.accounts.filter(a=>a.type!=='credit');
+  const creditAccs = DB.accounts.filter(a=>a.type==='credit');
+  
+  let html = '';
+  
+  if(debitAccs.length) {
+    html += `<div style="margin-bottom:8px;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted)">💳 Akun Aset (Debit / Tabungan / Investasi)</div>`;
+    html += `<div class="account-grid-inner" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;margin-bottom:24px;">`;
+    html += debitAccs.map(a=>{
+      const u=getUser(a.user);
+      return `<div class="account-card" style="background:${acColors[a.type]||acColors.debit}">
+        <div class="ac-actions">
+          <button class="ac-btn" onclick="editAccount('${a.id}')">✏️</button>
+          <button class="ac-btn" onclick="deleteAccount('${a.id}')">🗑️</button>
+        </div>
+        <div class="ac-icon">${a.icon}</div>
+        <div class="ac-name">${a.name}</div>
+        <div class="ac-balance">${fmt(a.balance)}</div>
+        <div class="ac-type">${a.type==='debit'?'Bank Debit':a.type==='ewallet'?'E-Wallet':a.type==='cash'?'Tunai':a.type==='investment'?'Investasi':'Tabungan'} • ${u.icon} ${u.name}</div>
+      </div>`;
+    }).join('');
+    html += `</div>`;
+  }
+  
+  if(creditAccs.length) {
+    html += `<div style="margin-bottom:8px;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--red)">💳 Akun Kredit (Hutang/Liabilitas — mengurangi kekayaan bersih)</div>`;
+    html += `<div class="account-grid-inner" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;margin-bottom:24px;">`;
+    html += creditAccs.map(a=>{
+      const u=getUser(a.user);
+      const limit = a.creditLimit||0;
+      const used = a.balance;
+      const avail = limit - used;
+      const pct = limit ? Math.min(100,Math.round(used/limit*100)) : 0;
+      return `<div class="account-card" style="background:${acColors.credit}">
+        <div class="ac-actions">
+          <button class="ac-btn" onclick="editAccount('${a.id}')">✏️</button>
+          <button class="ac-btn" onclick="deleteAccount('${a.id}')">🗑️</button>
+        </div>
+        <div class="ac-icon">${a.icon}</div>
+        <div class="ac-name">${a.name}</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.7);font-weight:700;text-transform:uppercase;margin-bottom:2px;">Tagihan / Hutang Kredit</div>
+        <div class="ac-balance" style="font-size:18px;">${fmt(used)}</div>
+        ${limit?`<div style="margin:6px 0 2px;background:rgba(255,255,255,0.2);border-radius:4px;height:5px;"><div style="width:${pct}%;background:${pct>80?'#FFF':'rgba(255,255,255,0.9)'};height:5px;border-radius:4px;"></div></div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.8);font-weight:600;">Limit: ${fmt(limit)} • Sisa: ${fmt(avail)}</div>`:''}
+        <div class="ac-type">Kartu Kredit 🔴 Liabilitas • ${u.icon} ${u.name}</div>
+      </div>`;
+    }).join('');
+    html += `</div>`;
+  }
+  
+  if(!debitAccs.length && !creditAccs.length) html='<div class="empty-state"><div class="icon">💳</div><p>Belum ada akun. Tambahkan akun dulu!</p></div>';
+  grid.innerHTML = html;
 }
 
 function saveAccount() {
   const name=document.getElementById('ac-name').value.trim();
   if(!name){showToast('Nama akun wajib diisi!','error');return;}
-  DB.accounts.push({
+  const type=document.getElementById('ac-type').value;
+  const acc = {
     id:uid(), name,
     balance:parseFloat(document.getElementById('ac-balance').value)||0,
-    type:document.getElementById('ac-type').value,
+    type,
     user:document.getElementById('ac-user').value,
     icon:document.getElementById('ac-icon').value
-  });
+  };
+  if(type==='credit') {
+    acc.creditLimit = parseFloat(document.getElementById('ac-credit-limit').value)||0;
+  }
+  DB.accounts.push(acc);
   saveDB(); populateAccountDropdowns(); renderAkun(); renderDashboard(); renderKekayaan();
   closeModal('addAccountModal');
   document.getElementById('ac-name').value=''; document.getElementById('ac-balance').value='';
+  document.getElementById('ac-credit-limit').value='';
   showToast('Akun berhasil ditambahkan! 💳');
 }
 
@@ -2127,6 +2334,10 @@ function editAccount(id) {
   populateUserDropdowns();
   document.getElementById('edit-ac-user').value=ac.user;
   document.getElementById('edit-ac-icon').value=ac.icon;
+  document.getElementById('edit-ac-credit-limit').value=ac.creditLimit||0;
+  // Show/hide credit limit row
+  const limitRow=document.getElementById('edit-ac-credit-limit-row');
+  if(limitRow) limitRow.style.display=ac.type==='credit'?'block':'none';
   openModal('editAccountModal');
 }
 function updateAccount() {
@@ -2137,6 +2348,9 @@ function updateAccount() {
   ac.type=document.getElementById('edit-ac-type').value;
   ac.user=document.getElementById('edit-ac-user').value;
   ac.icon=document.getElementById('edit-ac-icon').value;
+  if(ac.type==='credit') {
+    ac.creditLimit = parseFloat(document.getElementById('edit-ac-credit-limit').value)||0;
+  }
   saveDB(); populateAccountDropdowns(); renderAkun(); renderDashboard(); renderKekayaan();
   closeModal('editAccountModal');
   showToast('Akun berhasil diupdate! ✏️');
@@ -2170,9 +2384,10 @@ function renderHutang() {
   if(!list.length){tbody.innerHTML=`<tr><td colspan="8"><div class="empty-state"><div class="icon">⚖️</div><p>Belum ada ${hutangTab==='hutang'?'hutang':'piutang'}</p></div></td></tr>`;return;}
   tbody.innerHTML=list.map(d=>{
     const u=getUser(d.user);
+    const linkedAc = d.creditAccount ? getAccount(d.creditAccount) : null;
     return `<tr>
       <td>${d.date}</td>
-      <td style="font-weight:700">${d.name}</td>
+      <td style="font-weight:700">${d.name}${linkedAc?`<br><span style="font-size:10px;color:var(--red);font-weight:600;">💳 ${linkedAc.name}</span>`:''}</td>
       <td><span class="badge badge-purple">${u.icon} ${u.name}</span></td>
       <td class="${d.type==='hutang'?'amount-neg':'amount-pos'}" style="font-weight:800">${fmt(d.amount)}</td>
       <td><span class="badge ${d.status==='lunas'?'badge-green':'badge-red'}">${d.status==='lunas'?'✅ Lunas':'🔴 Aktif'}</span></td>
@@ -2191,16 +2406,18 @@ function renderHutang() {
 
 function saveDebt() {
   const editId=document.getElementById('debt-edit-id').value;
+  const debtType=document.getElementById('debt-type').value;
   const data={
     id:editId||uid(),
-    type:document.getElementById('debt-type').value,
+    type:debtType,
     name:document.getElementById('debt-name').value.trim(),
     amount:parseFloat(document.getElementById('debt-amount').value)||0,
     date:document.getElementById('debt-date').value,
     due:document.getElementById('debt-due').value,
     user:document.getElementById('debt-user').value,
     status:document.getElementById('debt-status').value,
-    note:document.getElementById('debt-note').value
+    note:document.getElementById('debt-note').value,
+    creditAccount: debtType==='hutang' ? (document.getElementById('debt-credit-account').value||'') : ''
   };
   if(!data.name||!data.amount){showToast('Nama & nominal wajib diisi!','error');return;}
   if(editId){DB.debts=DB.debts.map(d=>d.id===editId?data:d);}
@@ -2224,7 +2441,26 @@ function editDebt(id) {
   document.getElementById('debt-note').value=d.note||'';
   populateUserDropdowns();
   document.getElementById('debt-user').value=d.user;
+  // Credit account
+  populateDebtCreditAccountDropdown();
+  const creditRow=document.getElementById('debt-credit-account-row');
+  if(creditRow) creditRow.style.display=d.type==='hutang'?'block':'none';
+  if(d.creditAccount) document.getElementById('debt-credit-account').value=d.creditAccount;
   document.getElementById('debtModalTitle').textContent='✏️ Edit Hutang / Piutang';
+  openModal('addDebtModal');
+}
+
+function openAddDebtModal() {
+  document.getElementById('debt-edit-id').value='';
+  document.getElementById('debt-name').value='';
+  document.getElementById('debt-amount').value='';
+  document.getElementById('debt-note').value='';
+  document.getElementById('debt-type').value='hutang';
+  document.getElementById('debt-status').value='aktif';
+  document.getElementById('debtModalTitle').textContent='⚖️ Tambah Hutang / Piutang';
+  populateDebtCreditAccountDropdown();
+  const creditRow=document.getElementById('debt-credit-account-row');
+  if(creditRow) creditRow.style.display='block';
   openModal('addDebtModal');
 }
 
