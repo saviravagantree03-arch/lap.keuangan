@@ -571,6 +571,126 @@ hr.pink { border:none; border-top:2px dashed var(--pink-light); margin:20px 0; }
 .month-card.active-month .mc-in, .month-card.active-month .mc-out { color:rgba(255,255,255,0.85); }
 @media(max-width:768px) { .year-grid { grid-template-columns:repeat(3,1fr); } }
 
+
+/* MULTI CATEGORY PICKER */
+.multicat-box {
+  border: 2px solid var(--gray-200); border-radius: var(--radius-sm);
+  min-height: 44px; padding: 8px 12px; background: white; cursor: pointer;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 6px; transition: border-color 0.2s;
+}
+.multicat-box:hover, .multicat-box.open { border-color: var(--pink); box-shadow: 0 0 0 4px rgba(255,107,157,0.1); }
+.multicat-tags { display: flex; flex-wrap: wrap; gap: 5px; flex: 1; }
+.multicat-placeholder { font-size: 13px; color: var(--gray-400); font-weight: 500; }
+.multicat-tag {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--pink-pale); color: var(--pink);
+  border: 1px solid var(--pink-light); border-radius: 16px;
+  padding: 3px 10px; font-size: 12px; font-weight: 700;
+}
+.multicat-tag-remove {
+  cursor: pointer; font-size: 14px; line-height: 1;
+  transition: color 0.2s;
+}
+.multicat-tag-remove:hover { color: var(--rose); }
+.multicat-dropdown {
+  border: 2px solid var(--pink-light); border-radius: var(--radius-sm);
+  background: white; box-shadow: var(--shadow);
+  max-height: 220px; overflow-y: auto;
+  margin-top: 4px; z-index: 10; position: relative;
+}
+.multicat-option {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; cursor: pointer; font-size: 13px; font-weight: 600;
+  transition: background 0.15s;
+}
+.multicat-option:hover { background: var(--pink-pale); }
+.multicat-option.selected { background: var(--pink-pale); color: var(--pink); }
+.multicat-option .mc-check {
+  width: 18px; height: 18px; border: 2px solid var(--gray-200);
+  border-radius: 5px; display: flex; align-items: center; justify-content: center;
+  font-size: 11px; flex-shrink: 0; transition: all 0.15s;
+}
+.multicat-option.selected .mc-check { background: var(--pink); border-color: var(--pink); color: white; }
+
+
+/* BOTTOM NAV BAR */
+.bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 200;
+  background: white;
+  border-top: 1px solid rgba(255,107,157,0.15);
+  box-shadow: 0 -4px 24px rgba(255,107,157,0.12);
+  padding: 0 4px env(safe-area-inset-bottom, 0px);
+  height: 64px;
+}
+@media(max-width:768px) {
+  .bottom-nav { display: flex; align-items: stretch; }
+  .content { padding-bottom: 76px; }
+}
+.bn-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  cursor: pointer;
+  padding: 6px 4px;
+  border-radius: 12px;
+  margin: 6px 2px;
+  transition: all 0.2s;
+  color: var(--text-muted);
+  position: relative;
+}
+.bn-item:hover { background: var(--pink-pale); color: var(--pink); }
+.bn-item.active { color: var(--pink); }
+.bn-item.active .bn-icon { background: var(--pink-pale); }
+.bn-icon {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  transition: all 0.2s;
+}
+.bn-label {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.2px;
+  text-align: center;
+  line-height: 1;
+}
+.bn-item-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin: 4px 2px;
+}
+.bn-center-btn {
+  width: 52px; height: 52px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--pink), var(--rose));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px;
+  box-shadow: 0 4px 16px rgba(255,61,127,0.45);
+  transition: transform 0.2s, box-shadow 0.2s;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+.bn-item-center:hover .bn-center-btn {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(255,61,127,0.55);
+}
+.bn-center-label {
+  font-size: 10px; font-weight: 800;
+  color: var(--pink);
+  letter-spacing: 0.2px;
+}
+
 </style>
 </head>
 <body>
@@ -843,7 +963,7 @@ hr.pink { border:none; border-top:2px dashed var(--pink-light); margin:20px 0; }
       </div>
 
       <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
-        <button class="btn btn-primary" onclick="openModal('addBudgetModal')">＋ Tambah Anggaran</button>
+        <button class="btn btn-primary" onclick="resetBudgetModal();populateUserDropdowns();openModal('addBudgetModal')">＋ Tambah Anggaran</button>
       </div>
 
       <div id="budgetList">
@@ -1312,27 +1432,32 @@ hr.pink { border:none; border-top:2px dashed var(--pink-light); margin:20px 0; }
 
 <!-- ADD BUDGET MODAL -->
 <div class="modal-overlay" id="addBudgetModal">
-  <div class="modal" style="max-width:440px;">
+  <div class="modal" style="max-width:480px;">
     <div class="modal-header">
       <div class="modal-title" id="budgetModalTitle">📋 Tambah Anggaran</div>
       <button class="btn btn-ghost btn-icon" onclick="closeModal('addBudgetModal')">✕</button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="budget-edit-id">
-      <div class="form-group"><label class="form-label">Nama Anggaran</label><input type="text" class="form-control" id="budget-name" placeholder="Mis: Belanja Bulanan..."></div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Jenis Pengeluaran</label>
-          <div class="input-with-btn">
-            <select class="form-control" id="budget-cat"></select>
-            <button class="btn-add-inline" onclick="quickAddCat('expense')">＋</button>
+      <div class="form-group"><label class="form-label">Nama Anggaran</label><input type="text" class="form-control" id="budget-name" placeholder="Mis: Anggaran Makan..."></div>
+      <div class="form-group">
+        <label class="form-label">Jenis Pengeluaran <span style="color:var(--pink);font-size:10px;">(bisa pilih lebih dari 1)</span></label>
+        <div class="multicat-box" id="budgetCatBox" onclick="toggleBudgetCatDropdown()">
+          <div class="multicat-tags" id="budgetCatTags">
+            <span class="multicat-placeholder" id="budgetCatPlaceholder">Klik untuk pilih kategori...</span>
           </div>
+          <span style="color:var(--text-muted);font-size:12px;">▾</span>
         </div>
-        <div class="form-group"><label class="form-label">Nominal Anggaran (Rp)</label><input type="number" class="form-control" id="budget-amount" placeholder="0"></div>
+        <div class="multicat-dropdown" id="budgetCatDropdown" style="display:none;"></div>
+        <div style="margin-top:6px;">
+          <button type="button" class="btn-add-inline" style="font-size:11px;" onclick="event.stopPropagation();quickAddCat('expense')">✎ Buat Kategori Baru</button>
+        </div>
       </div>
       <div class="form-row">
+        <div class="form-group"><label class="form-label">Nominal Anggaran (Rp)</label><input type="number" class="form-control" id="budget-amount" placeholder="0"></div>
         <div class="form-group"><label class="form-label">Bulan</label><input type="month" class="form-control" id="budget-month"></div>
-        <div class="form-group"><label class="form-label">User</label><select class="form-control" id="budget-user"></select></div>
       </div>
+      <div class="form-group"><label class="form-label">User</label><select class="form-control" id="budget-user"></select></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('addBudgetModal')">Batal</button>
@@ -1416,7 +1541,7 @@ function saveDB() {
   localStorage.setItem('saviraDB', JSON.stringify(DB));
   // Kalau Supabase sudah dikonfigurasi, simpan juga ke cloud
   if (SUPABASE_URL && SUPABASE_KEY) {
-    fetch(`/rest/v1/savira_finance`, {
+    fetch(`${SUPABASE_URL}/rest/v1/savira_finance`, {
       method: 'POST',
       headers: {
         'apikey': SUPABASE_KEY,
@@ -1433,7 +1558,7 @@ async function loadDB() {
   // Coba ambil dari Supabase dulu (data paling baru)
   if (SUPABASE_URL && SUPABASE_KEY) {
     try {
-      const res = await fetch(`/rest/v1/savira_finance?id=eq.main&select=data`, {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/savira_finance?id=eq.main&select=data`, {
         headers: {
           'apikey': SUPABASE_KEY,
           'Authorization': 'Bearer ' + SUPABASE_KEY
@@ -1508,6 +1633,14 @@ function navigate(page) {
   document.querySelectorAll('.nav-item').forEach(n=>{ if(n.textContent.toLowerCase().includes(page.substring(0,4).toLowerCase())) n.classList.add('active'); });
   document.getElementById('topbarTitle').innerHTML = pageTitles[page]||page;
   closeSidebar();
+  // Update bottom nav active state
+  ['dashboard','histori','anggaran'].forEach(p=>{
+    const el=document.getElementById('bn-'+p);
+    if(el) el.classList.toggle('active', p===page);
+  });
+  // Highlight "more" btn for non-bottom-nav pages
+  const moreEl=document.getElementById('bn-more');
+  if(moreEl) moreEl.classList.toggle('active', !['dashboard','histori','anggaran','catat'].includes(page));
   // Refresh relevant page
   if(page==='dashboard') renderDashboard();
   if(page==='histori') renderHistori();
@@ -1624,10 +1757,11 @@ function populateCatDropdowns() {
     const el=document.getElementById(id); if(!el)return;
     el.innerHTML=''; DB.cats.income.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; el.appendChild(o); });
   });
-  ['out-cat','budget-cat'].forEach(id=>{
+  ['out-cat'].forEach(id=>{
     const el=document.getElementById(id); if(!el)return;
     el.innerHTML=''; DB.cats.expense.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; el.appendChild(o); });
   });
+  refreshBudgetCatDropdown();
 }
 function populateAccountDropdowns() {
   ['in-account','out-account','tr-from','tr-to','edit-tx-account'].forEach(id=>{
@@ -2534,6 +2668,84 @@ function renderKekayaan() {
 // ============================================================
 // ANGGARAN
 // ============================================================
+
+// State for selected cats in budget modal
+let budgetSelectedCats = [];
+
+function getBudgetCats(b) {
+  if(b.cats && b.cats.length) return b.cats;
+  if(b.cat) return [b.cat];
+  return [];
+}
+
+function refreshBudgetCatDropdown() {
+  const dropdown = document.getElementById('budgetCatDropdown');
+  if(!dropdown) return;
+  dropdown.innerHTML = '';
+  DB.cats.expense.forEach(cat => {
+    const selected = budgetSelectedCats.includes(cat);
+    const div = document.createElement('div');
+    div.className = 'multicat-option' + (selected ? ' selected' : '');
+    div.innerHTML = `<div class="mc-check">${selected ? '✓' : ''}</div><span>${cat}</span>`;
+    div.onclick = (e) => { e.stopPropagation(); toggleBudgetCat(cat); };
+    dropdown.appendChild(div);
+  });
+}
+
+function toggleBudgetCatDropdown() {
+  const dd = document.getElementById('budgetCatDropdown');
+  const box = document.getElementById('budgetCatBox');
+  const isOpen = dd.style.display !== 'none';
+  dd.style.display = isOpen ? 'none' : 'block';
+  box.classList.toggle('open', !isOpen);
+  if(!isOpen) refreshBudgetCatDropdown();
+}
+
+function toggleBudgetCat(cat) {
+  if(budgetSelectedCats.includes(cat)) {
+    budgetSelectedCats = budgetSelectedCats.filter(c => c !== cat);
+  } else {
+    budgetSelectedCats.push(cat);
+  }
+  renderBudgetCatTags();
+  refreshBudgetCatDropdown();
+}
+
+function renderBudgetCatTags() {
+  const tagsEl = document.getElementById('budgetCatTags');
+  const placeholder = document.getElementById('budgetCatPlaceholder');
+  if(!budgetSelectedCats.length) {
+    tagsEl.innerHTML = '<span class="multicat-placeholder" id="budgetCatPlaceholder">Klik untuk pilih kategori...</span>';
+    return;
+  }
+  tagsEl.innerHTML = budgetSelectedCats.map(c =>
+    `<span class="multicat-tag">${c}<span class="multicat-tag-remove" onclick="event.stopPropagation();toggleBudgetCat('${c}')">✕</span></span>`
+  ).join('');
+}
+
+function resetBudgetModal() {
+  budgetSelectedCats = [];
+  renderBudgetCatTags();
+  const dd = document.getElementById('budgetCatDropdown');
+  if(dd) dd.style.display = 'none';
+  const box = document.getElementById('budgetCatBox');
+  if(box) box.classList.remove('open');
+  document.getElementById('budget-edit-id').value = '';
+  document.getElementById('budget-name').value = '';
+  document.getElementById('budget-amount').value = '';
+  document.getElementById('budgetModalTitle').textContent = '📋 Tambah Anggaran';
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e) {
+  const box = document.getElementById('budgetCatBox');
+  const dd = document.getElementById('budgetCatDropdown');
+  if(box && dd && !box.contains(e.target) && !dd.contains(e.target)) {
+    dd.style.display = 'none';
+    box.classList.remove('open');
+  }
+});
+
 function renderAnggaran() {
   const thisMonth = new Date().toISOString().slice(0,7);
   const budgets = DB.budgets.filter(b=>b.month===thisMonth);
@@ -2549,19 +2761,22 @@ function renderAnggaran() {
   }
   const r=getMonthRange(0);
   container.innerHTML=budgets.map(b=>{
-    const used=DB.transactions.filter(t=>t.type==='expense'&&t.cat===b.cat&&t.date>=r.start&&t.date<=r.end&&(b.user===''||t.user===b.user)).reduce((s,t)=>s+t.amount,0);
+    const cats = getBudgetCats(b);
+    const used=DB.transactions.filter(t=>t.type==='expense'&&cats.includes(t.cat)&&t.date>=r.start&&t.date<=r.end&&(b.user===''||t.user===b.user)).reduce((s,t)=>s+t.amount,0);
     const pct=b.amount?Math.min(100,Math.round(used/b.amount*100)):0;
     const remain=b.amount-used;
     totalBudget+=b.amount; totalUsed+=used;
     const color=pct>=90?'#F87171':pct>=70?'#FBBF24':'#34D399';
     const u=getUser(b.user);
+    const catBadges = cats.map(c=>`<span class="badge badge-pink" style="margin-right:3px;margin-bottom:2px">${c}</span>`).join('');
     return `<div class="budget-item">
       <div class="budget-header">
-        <div>
-          <div class="budget-name">${b.name} <span class="badge badge-pink">${b.cat}</span></div>
-          <div class="budget-amounts">${u.icon} ${u.name} • Anggaran: ${fmt(b.amount)}</div>
+        <div style="flex:1;min-width:0">
+          <div class="budget-name" style="margin-bottom:6px">${b.name}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:5px">${catBadges}</div>
+          <div class="budget-amounts">${u.icon} ${u.name} • Anggaran: ${fmt(b.amount)} • Terpakai: <strong style="color:${color}">${fmt(used)}</strong></div>
         </div>
-        <div style="display:flex;gap:6px;">
+        <div style="display:flex;gap:6px;flex-shrink:0;margin-left:12px">
           <button class="btn btn-warning btn-xs" onclick="editBudget('${b.id}')">✏️ Edit</button>
           <button class="btn btn-danger btn-xs" onclick="deleteBudget('${b.id}')">🗑️ Hapus</button>
         </div>
@@ -2581,10 +2796,12 @@ function renderAnggaran() {
 
 function saveBudget() {
   const editId=document.getElementById('budget-edit-id').value;
+  if(!budgetSelectedCats.length){showToast('Pilih minimal 1 kategori!','error');return;}
   const data={
     id:editId||uid(),
     name:document.getElementById('budget-name').value.trim(),
-    cat:document.getElementById('budget-cat').value,
+    cats: [...budgetSelectedCats],
+    cat: budgetSelectedCats[0], // backward compat
     amount:parseFloat(document.getElementById('budget-amount').value)||0,
     month:document.getElementById('budget-month').value,
     user:document.getElementById('budget-user').value
@@ -2594,16 +2811,17 @@ function saveBudget() {
   else DB.budgets.push(data);
   saveDB(); renderAnggaran();
   closeModal('addBudgetModal');
-  document.getElementById('budget-edit-id').value='';
-  document.getElementById('budget-name').value=''; document.getElementById('budget-amount').value='';
+  resetBudgetModal();
   showToast(editId?'Anggaran diupdate!':'Anggaran ditambahkan! 📋');
 }
 
 function editBudget(id) {
   const b=DB.budgets.find(x=>x.id===id); if(!b)return;
+  resetBudgetModal();
+  budgetSelectedCats = [...getBudgetCats(b)];
+  renderBudgetCatTags();
   document.getElementById('budget-edit-id').value=id;
   document.getElementById('budget-name').value=b.name;
-  document.getElementById('budget-cat').value=b.cat;
   document.getElementById('budget-amount').value=b.amount;
   document.getElementById('budget-month').value=b.month;
   populateUserDropdowns();
@@ -2619,6 +2837,8 @@ function deleteBudget(id) {
     showToast('Anggaran dihapus!','warning');
   });
 }
+
+
 
 // ============================================================
 // KALENDER
@@ -2753,5 +2973,30 @@ function exportCSV() {
 // AFTER LOAD SETUP - handled by async DOMContentLoaded above
 // ============================================================
 </script>
+
+<!-- BOTTOM NAV BAR -->
+<nav class="bottom-nav" id="bottomNav">
+  <div class="bn-item active" id="bn-dashboard" onclick="navigate('dashboard')">
+    <div class="bn-icon">🏠</div>
+    <div class="bn-label">Beranda</div>
+  </div>
+  <div class="bn-item" id="bn-histori" onclick="navigate('histori')">
+    <div class="bn-icon">📜</div>
+    <div class="bn-label">Histori</div>
+  </div>
+  <div class="bn-item-center" onclick="navigate('catat')">
+    <div class="bn-center-btn">✏️</div>
+    <div class="bn-center-label">Catat</div>
+  </div>
+  <div class="bn-item" id="bn-anggaran" onclick="navigate('anggaran')">
+    <div class="bn-icon">📋</div>
+    <div class="bn-label">Anggaran</div>
+  </div>
+  <div class="bn-item" id="bn-more" onclick="toggleSidebar()">
+    <div class="bn-icon">☰</div>
+    <div class="bn-label">Menu</div>
+  </div>
+</nav>
+
 </body>
 </html>
